@@ -1,5 +1,5 @@
 ﻿/*----------------------------------------------------------------
-    Copyright (C) 2017 Senparc
+    Copyright (C) 2018 Senparc
 
     文件名：StackExchangeRedisExtensions.cs
     文件功能描述：StackExchange.Redis 扩展。
@@ -71,10 +71,11 @@ namespace Senparc.Weixin.Cache.Redis
                 return null;
             }
 
-#if NETSTANDARD1_6
+#if NETSTANDARD1_6// || NETSTANDARD2_0
             //二进制序列化方案
             using (MemoryStream memoryStream = new MemoryStream())
             {
+                
                 ProtoBuf.Serializer.Serialize(memoryStream, o);
                 byte[] objectDataAsStream = memoryStream.ToArray();
                 return objectDataAsStream;

@@ -1,7 +1,7 @@
 ﻿#region Apache License Version 2.0
 /*----------------------------------------------------------------
 
-Copyright 2017 Jeffrey Su & Suzhou Senparc Network Technology Co.,Ltd.
+Copyright 2018 Jeffrey Su & Suzhou Senparc Network Technology Co.,Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
 except in compliance with the License. You may obtain a copy of the License at
@@ -25,20 +25,22 @@ using System.Threading;
 using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Senparc.Weixin.Context;
+using Senparc.Weixin.Helpers.Extensions;
 using Senparc.Weixin.MP.Entities;
 using Senparc.Weixin.MP.Entities.Request;
+using Senparc.Weixin.MP.Helpers;
 using Senparc.Weixin.MP.MessageHandlers;
 
 namespace Senparc.Weixin.MP.Test.MessageHandlers
 {
-    public class CustomerMessageHandlers : MessageHandler<MessageContext<IRequestMessageBase, IResponseMessageBase>>
+    public class CustomMessageHandlers : MessageHandler<MessageContext<IRequestMessageBase, IResponseMessageBase>>
     {
-        public CustomerMessageHandlers(XDocument requestDoc, PostModel postModel = null, int maxRecordCount = 0)
+        public CustomMessageHandlers(XDocument requestDoc, PostModel postModel = null, int maxRecordCount = 0)
             : base(requestDoc, postModel, maxRecordCount)
         {
         }
 
-        public CustomerMessageHandlers(RequestMessageBase requestMessage, PostModel postModel = null, int maxRecordCount = 0)
+        public CustomMessageHandlers(RequestMessageBase requestMessage, PostModel postModel = null, int maxRecordCount = 0)
             : base(requestMessage, postModel, maxRecordCount)
         {
         }
@@ -49,7 +51,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
             var responseMessage =
                ResponseMessageBase.CreateFromRequestMessage<ResponseMessageText>(RequestMessage);
 
-            if (requestMessage.Content=="代理")
+            if (requestMessage.Content == "代理")
             {
             }
             else
@@ -68,32 +70,32 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
 
         #region 微信认证事件推送
 
-        public override IResponseMessageBase OnEvent_QualificationVerifySuccess(RequestMessageEvent_QualificationVerifySuccess requestMessage)
+        public override IResponseMessageBase OnEvent_QualificationVerifySuccessRequest(RequestMessageEvent_QualificationVerifySuccess requestMessage)
         {
             return new SuccessResponseMessage();
         }
 
-        public override IResponseMessageBase OnEvent_QualificationVerifyFail(RequestMessageEvent_QualificationVerifyFail requestMessage)
+        public override IResponseMessageBase OnEvent_QualificationVerifyFailRequest(RequestMessageEvent_QualificationVerifyFail requestMessage)
         {
             return new SuccessResponseMessage();
         }
 
-        public override IResponseMessageBase OnEvent_NamingVerifySuccess(RequestMessageEvent_NamingVerifySuccess requestMessage)
+        public override IResponseMessageBase OnEvent_NamingVerifySuccessRequest(RequestMessageEvent_NamingVerifySuccess requestMessage)
         {
             return new SuccessResponseMessage();
         }
 
-        public override IResponseMessageBase OnEvent_NamingVerifyFail(RequestMessageEvent_NamingVerifyFail requestMessage)
+        public override IResponseMessageBase OnEvent_NamingVerifyFailRequest(RequestMessageEvent_NamingVerifyFail requestMessage)
         {
             return new SuccessResponseMessage();
         }
 
-        public override IResponseMessageBase OnEvent_AnnualRenew(RequestMessageEvent_AnnualRenew requestMessage)
+        public override IResponseMessageBase OnEvent_AnnualRenewRequest(RequestMessageEvent_AnnualRenew requestMessage)
         {
             return new SuccessResponseMessage();
         }
 
-        public override IResponseMessageBase OnEvent_VerifyExpired(RequestMessageEvent_VerifyExpired requestMessage)
+        public override IResponseMessageBase OnEvent_VerifyExpiredRequest(RequestMessageEvent_VerifyExpired requestMessage)
         {
             return new SuccessResponseMessage();
         }
@@ -161,6 +163,24 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
             responseMessage.Content = "您发送的消息类型暂未被识别。";
             return responseMessage;
         }
+
+        public override IResponseMessageBase OnUnknownTypeRequest(RequestMessageUnknownType requestMessage)
+        {
+            var msgType = MsgTypeHelper.GetRequestMsgTypeString(requestMessage.RequestDocument);
+
+            var responseMessage = this.CreateResponseMessage<ResponseMessageText>();
+            responseMessage.Content = "未知消息类型：" + msgType;
+
+            return responseMessage;
+            //return base.OnUnknownTypeRequest(requestMessage);
+        }
+
+        public override IResponseMessageBase OnEvent_SubscribeRequest(RequestMessageEvent_Subscribe requestMessage)
+        {
+            var responseMessage = this.CreateResponseMessage<ResponseMessageText>();
+            responseMessage.Content = "欢迎关注";
+            return responseMessage;
+        }
     }
 
     [TestClass]
@@ -193,7 +213,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
         [TestMethod]
         public void TextMessageRequestTest()
         {
-            var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(xmlText));
+            var messageHandlers = new CustomMessageHandlers(XDocument.Parse(xmlText));
             Assert.IsNotNull(messageHandlers.RequestDocument);
             messageHandlers.Execute();
             Assert.IsNotNull(messageHandlers.ResponseMessage);
@@ -229,10 +249,10 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
 </SendLocationInfo>
 </xml>
 ";
-            var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(requestXML));
+            var messageHandlers = new CustomMessageHandlers(XDocument.Parse(requestXML));
             Assert.IsNotNull(messageHandlers.RequestDocument);
-            Assert.IsInstanceOfType(messageHandlers.RequestMessage,typeof(RequestMessageEvent_Location_Select));
-            Assert.AreEqual("ZBZXC",((RequestMessageEvent_Location_Select)messageHandlers.RequestMessage).EventKey);
+            Assert.IsInstanceOfType(messageHandlers.RequestMessage, typeof(RequestMessageEvent_Location_Select));
+            Assert.AreEqual("ZBZXC", ((RequestMessageEvent_Location_Select)messageHandlers.RequestMessage).EventKey);
 
             messageHandlers.Execute();
             Assert.IsNotNull(messageHandlers.ResponseMessage);
@@ -242,8 +262,34 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
 
             Console.WriteLine(messageHandlers.ResponseDocument.ToString());
             Assert.AreEqual("ToUserName", messageHandlers.ResponseMessage.FromUserName);
-            Assert.IsInstanceOfType(messageHandlers.ResponseMessage,typeof(ResponseMessageText));
-            Assert.AreEqual("OnEvent_LocationSelectRequest",((ResponseMessageText)messageHandlers.ResponseMessage).Content);
+            Assert.IsInstanceOfType(messageHandlers.ResponseMessage, typeof(ResponseMessageText));
+            Assert.AreEqual("OnEvent_LocationSelectRequest", ((ResponseMessageText)messageHandlers.ResponseMessage).Content);
+        }
+
+        [TestMethod]
+        public void OnSubscribeTest()
+        {
+            var requestXML = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<xml>
+<ToUserName><![CDATA[gh_0fe614101343]]></ToUserName>
+<FromUserName><![CDATA[oxRg0uLsnpHjb8o93uVnwMK_WAVw]]></FromUserName>
+<CreateTime>1516545128</CreateTime>
+<MsgType><![CDATA[event]]></MsgType>
+<Event><![CDATA[subscribe]]></Event>
+<EventKey><![CDATA[]]></EventKey>
+</xml>
+";
+            var messageHandlers = new CustomMessageHandlers(XDocument.Parse(requestXML));
+            Assert.IsNotNull(messageHandlers.RequestDocument);
+            Assert.IsInstanceOfType(messageHandlers.RequestMessage, typeof(RequestMessageEvent_Subscribe));
+            Assert.AreEqual("", ((RequestMessageEvent_Subscribe)messageHandlers.RequestMessage).EventKey);//EventKey为空
+
+            messageHandlers.Execute();
+            Assert.IsNotNull(messageHandlers.ResponseMessage);
+            Assert.IsNotNull(messageHandlers.ResponseDocument);
+            Assert.IsInstanceOfType(messageHandlers.ResponseMessage, typeof(ResponseMessageText));
+            Assert.AreEqual("欢迎关注",((ResponseMessageText)messageHandlers.ResponseMessage).Content);
+            Console.WriteLine(messageHandlers.FinalResponseDocument);
         }
 
         [TestMethod]
@@ -270,7 +316,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
                 EncodingAESKey = "mNnY5GekpChwqhy2c4NBH90g3hND6GeI4gii2YCvKLY",
                 AppId = "wx669ef95216eef885"
             };
-            var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(ecryptXml), postModel);
+            var messageHandlers = new CustomMessageHandlers(XDocument.Parse(ecryptXml), postModel);
             Assert.IsNotNull(messageHandlers.RequestDocument);
             Assert.IsNotNull(messageHandlers.RequestMessage);
             Assert.IsNotNull(messageHandlers.RequestMessage.Encrypt);
@@ -285,7 +331,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
     <ToUserName><![CDATA[gh_a96a4a619366]]></ToUserName>
     <Encrypt><![CDATA[2gUBUpAeuPFKBS+gkcvrR1cBq1VjTOQluB7+FQF00VnybRpYR3xko4S4wh0qD+64cWmJfF93ZNLm+HLZBexjHLAdJBs5RBG2rP1AJnU0/1vQU/Ac9Q1Nq7vfC4l3ciF8YwhQW0o/GE4MYWWakgdwnp0hQ7aVVwqMLd67A5bsURQHJiFY/cH0fVlsKe6J3aazGhRXFCxceOq2VTJ2Eulc8aBDVSM5/lAIUA/JPq5Z2RzomM0+aoa5XIfGyAtAdlBXD0ADTemxgfYAKI5EMfKtH5za3dKV2UWbGAlJQZ0fwrwPx6Rs8MsoEtyxeQ52gO94gafA+/kIVjamKTVLSgudLLz5rAdGneKkBVhXyfyfousm1DoDRjQdAdqMWpwbeG5hanoJyJiH+humW/1q8PAAiaEfA+BOuvBk/a5xL0Q2l2k=]]></Encrypt>
 </xml>";
-            messageHandlers = new CustomerMessageHandlers(XDocument.Parse(ecryptXml), postModel);
+            messageHandlers = new CustomMessageHandlers(XDocument.Parse(ecryptXml), postModel);
             Assert.IsNotNull(messageHandlers.RequestDocument);
             Assert.IsNotNull(messageHandlers.RequestMessage);
             Assert.IsNotNull(messageHandlers.RequestMessage.Encrypt);
@@ -299,8 +345,8 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
         public void SyncTest()
         {
             //测试缓存同步
-            var messageHandlers1 = new CustomerMessageHandlers(XDocument.Parse(xmlText));
-            var messageHandlers2 = new CustomerMessageHandlers(XDocument.Parse(xmlText));
+            var messageHandlers1 = new CustomMessageHandlers(XDocument.Parse(xmlText));
+            var messageHandlers2 = new CustomMessageHandlers(XDocument.Parse(xmlText));
             messageHandlers1.Execute();
             Assert.AreEqual(messageHandlers1.WeixinContext.GetHashCode(), messageHandlers2.WeixinContext.GetHashCode());
         }
@@ -308,7 +354,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
         [TestMethod]
         public void ContextTest()
         {
-            var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(xmlText));
+            var messageHandlers = new CustomMessageHandlers(XDocument.Parse(xmlText));
             messageHandlers.Execute();
             var messageContext = messageHandlers.WeixinContext.GetMessageContext(messageHandlers.RequestMessage);
             Assert.IsTrue(messageContext.RequestMessages.Count > 0);
@@ -345,7 +391,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
                     for (int j = 0; j < 2; j++)
                     {
                         //每个用户请求2次
-                        var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(xml));
+                        var messageHandlers = new CustomMessageHandlers(XDocument.Parse(xml));
                         messageHandlers.Execute();
                     }
                     Thread.Sleep(5);
@@ -357,7 +403,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
         [TestMethod]
         public void RestoreTest()
         {
-            var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(xmlText));
+            var messageHandlers = new CustomMessageHandlers(XDocument.Parse(xmlText));
             messageHandlers.Execute();
             Assert.IsTrue(messageHandlers.WeixinContext.MessageCollection.Count > 0);
             messageHandlers.WeixinContext.Restore();
@@ -394,7 +440,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
                 var userName = "3_4";
 
                 var xml = string.Format(TestContext.RequestXmlFormat, userName);
-                var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(xml));
+                var messageHandlers = new CustomMessageHandlers(XDocument.Parse(xml));
                 messageHandlers.Execute();
                 var lastQueueMessage = weixinContext.MessageQueue.Last();
                 Assert.AreEqual(userName, lastQueueMessage.UserName);
@@ -426,7 +472,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
 <ErrorCount>5</ErrorCount>
 </xml>";
 
-            var messageHandlers = new CustomerMessageHandlers(XDocument.Parse(xml));
+            var messageHandlers = new CustomMessageHandlers(XDocument.Parse(xml));
             messageHandlers.Execute();
             Assert.IsNotNull(messageHandlers.ResponseMessage);
             Console.Write(messageHandlers.ResponseDocument);
@@ -436,7 +482,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
         [TestMethod]
         public void DefaultResponseMessageTest()
         {
-            var messageHandler = new CustomerMessageHandlers(XDocument.Parse(xmlLocation));
+            var messageHandler = new CustomMessageHandlers(XDocument.Parse(xmlLocation));
             messageHandler.Execute();
 
             //TestMessageHandlers中没有处理坐标信息的重写方法，将返回默认消息
@@ -444,6 +490,33 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
 
             Assert.IsInstanceOfType(messageHandler.ResponseMessage, typeof(ResponseMessageText));
             Assert.AreEqual("您发送的消息类型暂未被识别。", ((ResponseMessageText)messageHandler.ResponseMessage).Content);
+        }
+
+
+        [TestMethod]
+        public void UnknowTypeMessageTest()
+        {
+          var   requestXmlFormat = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<xml>
+    <ToUserName><![CDATA[gh_a96a4a619366]]></ToUserName>
+    <FromUserName><![CDATA[{0}]]></FromUserName>
+    <CreateTime>1357986928</CreateTime>
+    <MsgType><![CDATA[{1}]]></MsgType>
+    <Content><![CDATA[TNT2]]></Content>
+    <MsgId>5832509444155992350</MsgId>
+</xml>
+";
+            var types = new[] {"unknown1", "unknown2", "unknown3"};
+            foreach (var type in types)
+            {
+                var fileXml = requestXmlFormat.FormatWith("JeffreySu", type);
+
+                var messageHandler = new CustomMessageHandlers(XDocument.Parse(fileXml));
+                messageHandler.OmitRepeatedMessage = false;//禁用去重机制
+                messageHandler.Execute();
+                Assert.IsInstanceOfType(messageHandler.ResponseMessage, typeof(ResponseMessageText));
+                Assert.AreEqual("未知消息类型：{0}".FormatWith(type), ((ResponseMessageText)messageHandler.ResponseMessage).Content);
+            }
         }
 
         /// <summary>
@@ -460,7 +533,7 @@ namespace Senparc.Weixin.MP.Test.MessageHandlers
                 ToUserName = "ToUserName",
                 MsgId = 123,
             };
-            var messageHandler = new CustomerMessageHandlers(requestMessage);
+            var messageHandler = new CustomMessageHandlers(requestMessage);
             messageHandler.Execute();
 
             //TestMessageHandlers中没有处理坐标信息的重写方法，将返回默认消息
