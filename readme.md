@@ -1,4 +1,6 @@
-> _公告：为了将 Demo 和源代码隔离，并让大家更方便地找到 Demo，现已将 Senparc.Weixin.MP.Sample 等文件夹转移到 [/Samples/](Samples/) 文件夹下。_
+> _【公告】_<br>
+> _1. 为了将 Demo 和源代码隔离，并让大家更方便地找到 Demo，现已将 Senparc.Weixin.MP.Sample 等文件夹转移到 [/Samples/](Samples/) 文件夹下。_<br>
+> _2. `Senparc.Weixin.Plugins`计划已经启动，详情 [点击这里](https://github.com/JeffreySu/WeiXinMPSDK/tree/master/Plugins)。_
 
 Senparc.Weixin —— 微信 .NET SDK 
 =================
@@ -178,8 +180,8 @@ Senparc 官方视频教程
 > 1. 微信开发基础技能<br>
 > 2. 公众号及小程序案例实战<br>
 > 
-> 共计 60 课时，配有番外篇。
-> 目前视频已经在网易云课堂上线，[【点击查看】](https://book.weixin.senparc.com/book/videolinknetease?code=github-homepage)。
+> 共计 60 课时，配有番外篇。<br>
+> 目前视频已经在网易云课堂上线，课程制作精良、内容充实，被选为“A”级课程，[【点击查看】](https://book.weixin.senparc.com/book/videolinknetease?code=github-homepage)。
 
 
 ### 关注测试账号（SenparcRobot）：
